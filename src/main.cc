@@ -85,7 +85,7 @@ auto get_host_exe() -> std::string
  * @param reason Reason for calling this function.
  * @return True if the module should remain loaded, false otherwise.
  */
-auto DllMain(HINSTANCE module, DWORD reason, LPVOID) -> BOOL
+auto WINAPI DllMain(HINSTANCE module, DWORD reason, LPVOID) -> BOOL
 {
     if (reason != DLL_PROCESS_ATTACH)
         return TRUE;
