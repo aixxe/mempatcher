@@ -22,7 +22,7 @@ BEGIN
       VALUE "FileDescription", "mempatcher"
       VALUE "FileVersion", GIT_COMMIT_HASH
       VALUE "InternalName", "mempatcher"
-      VALUE "LegalCopyright", "© 2024, aixxe.net"
+      VALUE "LegalCopyright", "\xA9 2025, aixxe.net"
       VALUE "OriginalFilename", "mempatcher.dll"
       VALUE "ProductName", "mempatcher"
       VALUE "ProductVersion", RC_FILEVERSION_STRING
