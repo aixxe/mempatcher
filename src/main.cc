@@ -1,4 +1,6 @@
 #include <ranges>
+#include <algorithm>
+#include <fmt/ranges.h>
 
 #include "util.h"
 #include "hooks.h"

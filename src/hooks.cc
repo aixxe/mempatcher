@@ -1,4 +1,5 @@
 #include <ranges>
+#include <algorithm>
 
 #include "util.h"
 #include "hooks.h"

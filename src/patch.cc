@@ -1,4 +1,5 @@
 #include <span>
+#include <fmt/ranges.h>
 
 #include "patch.h"
 
