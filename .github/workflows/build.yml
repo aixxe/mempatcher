@@ -4,56 +4,94 @@ on: [push]
 
 jobs:
   build:
-    runs-on: windows-latest
+    name: Build
+    runs-on: ubuntu-latest
+
+    container:
+      image: mstorsjo/llvm-mingw:latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86, x64, ARMv7, AArch64]
+        include:
+          - arch: x86
+            cmake_arch: i686
+            vcpkg_target: x86-mingw-static
+            release_name: mempatcher.x86.dll
+          - arch: x64
+            cmake_arch: x86_64
+            vcpkg_target: x64-mingw-static
+            release_name: mempatcher.x64.dll
+          - arch: ARMv7
+            cmake_arch: armv7
+            vcpkg_target: arm-mingw-static
+            release_name: mempatcher.armv7.dll
+          - arch: AArch64
+            cmake_arch: aarch64
+            vcpkg_target: arm64-mingw-static
+            release_name: mempatcher.aarch64.dll
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          .\32\
-          .\64\
-          .\cache\
-        key: build
-        restore-keys: build
+      - name: Install PowerShell
+        run: |
+          curl -LO https://github.com/PowerShell/PowerShell/releases/download/v7.5.4/powershell_7.5.4-1.deb_amd64.deb
+          dpkg -i powershell_7.5.4-1.deb_amd64.deb
 
-    - name: Configure project (32-bit)
-      run: cmake -A Win32 -DCPM_SOURCE_CACHE=cache -DBUILD_TESTING=ON -S ./ -B 32/
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
 
-    - name: Build project (32-bit)
-      run: cmake --build 32/ --config Release
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v4
+        with:
+          path: /tmp/cache
+          key: vcpkg-${{ matrix.vcpkg_target }}-${{ hashFiles('vcpkg.json') }}
 
-    - name: Run tests (32-bit)
-      run: .\32\test\Release\mempatcher_test.exe
+      - name: Configure CMake
+        env:
+          VCPKG_BINARY_SOURCES: "clear;files,/tmp/cache,readwrite"
+        run: |
+          cmake -G Ninja -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DVCPKG_HOST_TRIPLET=x64-mingw-static \
+            -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_target }} \
+            -DCMAKE_SYSTEM_PROCESSOR=${{ matrix.cmake_arch }} \
+            -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=$(pwd)/toolchain-llvm-mingw.cmake \
+            -DCMAKE_SHARED_LINKER_FLAGS="-s -static -Wl,--exclude-all-symbols -Wl,--gc-sections"
 
-    - name: Upload artifacts (32-bit)
-      uses: actions/upload-artifact@v4
-      with:
-        name: Release (32-bit)
-        path: 32/Release/mempatcher32.dll
+      - name: Build with CMake
+        run: cmake --build build
 
-    - name: Configure project (64-bit)
-      run: cmake -A x64 -DCPM_SOURCE_CACHE=cache -DBUILD_TESTING=ON -S ./ -B 64/
+      - name: Rename binary
+        run: mv build/mempatcher.dll build/${{ matrix.release_name }}
 
-    - name: Build project (64-bit)
-      run: cmake --build 64/ --config Release
+      - name: Upload binary artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.release_name }}
+          path: build/${{ matrix.release_name }}
 
-    - name: Run tests (64-bit)
-      run: .\64\test\Release\mempatcher_test.exe
+  release:
+    name: Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
 
-    - name: Upload artifacts (64-bit)
-      uses: actions/upload-artifact@v4
-      with:
-        name: Release (64-bit)
-        path: 64/Release/mempatcher64.dll
-
-    - name: Create release
-      uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        files: |
-          32/Release/mempatcher32.dll
-          64/Release/mempatcher64.dll
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/mempatcher.x86.dll/mempatcher.x86.dll
+            artifacts/mempatcher.x64.dll/mempatcher.x64.dll
+            artifacts/mempatcher.armv7.dll/mempatcher.armv7.dll
+            artifacts/mempatcher.aarch64.dll/mempatcher.aarch64.dll
