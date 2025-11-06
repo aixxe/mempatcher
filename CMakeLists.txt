@@ -7,7 +7,7 @@ if (BUILD_TESTING)
     list(APPEND VCPKG_MANIFEST_FEATURES "tests")
 endif()
 
-project(mempatcher LANGUAGES CXX VERSION 0.2.1.0)
+project(mempatcher LANGUAGES CXX VERSION 0.2.2.0)
 
 include(cmake/GetGitRevisionDescription.cmake)
 
