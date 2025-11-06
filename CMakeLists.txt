@@ -25,6 +25,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     src/hooks.cc
     src/patch.cc
     src/parser.cc
+    src/memory.cc
     res/mempatcher.rc
 )
 

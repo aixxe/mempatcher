@@ -2,6 +2,7 @@
 #include <fmt/ranges.h>
 
 #include "patch.h"
+#include "memory.h"
 
 using namespace mempatcher;
 
@@ -82,7 +83,7 @@ auto resolve_address(std::uint8_t* base, const parser::patch& patch) -> std::uin
  */
 auto compare_data(std::uint8_t* target, const parser::patch& patch)
 {
-    if (std::memcmp(target, patch.off.data(), patch.off.size()) == 0)
+    if (memory::compare(target, patch.off))
         return true;
 
     if (!patch.on.empty() && std::memcmp(target, patch.on.data(), patch.on.size()) == 0)
@@ -115,15 +116,7 @@ auto try_compare_data(std::uint8_t* target, const parser::patch& patch)
     if (patch.off.empty())
         return true;
 
-    __try
-        { return compare_data(target, patch); }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        spdlog::error("Failed to read data from '{}':{} at {} 0x{:X}",
-            patch.file, patch.line, patch.type_name(), patch.address);
-
-        return false;
-    }
+    return compare_data(target, patch);
 }
 
 /**
